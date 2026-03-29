@@ -414,6 +414,30 @@ class Music(commands.Cog):
         else:
             await interaction.response.send_message("Je suis pas dans un salon vocal.")
 
+    @app_commands.command(name="didiout", description="Force l'arrêt du bot audio et réinitialise la file")
+    async def emergency_reset(self, interaction: discord.Interaction):
+        queue = self.get_queue(interaction.guild.id)
+        vc = interaction.guild.voice_client
+
+        queue.clear()
+
+        if vc:
+            try:
+                if vc.is_playing() or vc.is_paused():
+                    vc.stop()
+            except Exception:
+                pass
+
+            try:
+                await vc.disconnect(force=True)
+            except TypeError:
+                await vc.disconnect()
+            except Exception as e:
+                print(f"[didiout] disconnect failed guild={interaction.guild.id} error={e!r}")
+
+        self.queues.pop(interaction.guild.id, None)
+        await interaction.response.send_message("Reset forcé effectué. File vidée et vocal coupé.")
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Music(bot))
