@@ -6,8 +6,9 @@ from collections import deque
 
 from utils.youtube import search_youtube, get_playlist, resolve_url, format_duration, FFMPEG_OPTIONS
 from utils.spotify import search_track, get_playlist_tracks
+from utils.amazon import get_amazon_playlist_tracks
 from utils.validators import (
-    is_valid_youtube_url, is_valid_spotify_url, is_valid_deezer_url,
+    is_valid_youtube_url, is_valid_spotify_url, is_valid_deezer_url, is_valid_amazon_url,
     sanitize_search_query, MAX_QUEUE_SIZE, MAX_PLAYLIST_SIZE
 )
 
@@ -34,6 +35,7 @@ class MusicQueue:
     def clear(self):
         self.queue.clear()
         self.current = None
+        self.is_playing = False
 
     def __len__(self):
         return len(self.queue)
@@ -73,6 +75,7 @@ class Music(commands.Cog):
         track = queue.next()
 
         if not track or not guild.voice_client:
+            queue.is_playing = False
             if guild.voice_client:
                 asyncio.run_coroutine_threadsafe(
                     self._leave_empty(guild, text_channel), self.bot.loop
@@ -120,13 +123,29 @@ class Music(commands.Cog):
                 embed.set_footer(text=f"{len(queue)} titre(s) dans la file")
 
             await text_channel.send(embed=embed)
-            vc.play(source, after=lambda e: self.play_next(guild, text_channel))
+            vc.play(source, after=lambda e: self._after_playback(guild, text_channel, e))
 
         asyncio.run_coroutine_threadsafe(_play(), self.bot.loop)
 
+    def _after_playback(self, guild: discord.Guild, text_channel: discord.TextChannel, error: Exception | None):
+        queue = self.get_queue(guild.id)
+        queue.is_playing = False
+
+        if error:
+            print(f"Erreur lecture Discord voice pour {guild.name}: {error}")
+
+        self.play_next(guild, text_channel)
+
     async def _leave_empty(self, guild: discord.Guild, text_channel: discord.TextChannel):
         await asyncio.sleep(2)
-        if guild.voice_client and not guild.voice_client.is_playing():
+        queue = self.get_queue(guild.id)
+        if (
+            guild.voice_client
+            and not guild.voice_client.is_playing()
+            and not guild.voice_client.is_paused()
+            and queue.current is None
+            and len(queue) == 0
+        ):
             await text_channel.send("File vide, je me casse ! À plus 👋")
             await guild.voice_client.disconnect()
 
@@ -187,7 +206,7 @@ class Music(commands.Cog):
 
     # ── /playlist ──────────────────────────────────────────────────────────────
 
-    @app_commands.command(name="didiplaylist", description="Joue une playlist YouTube, Spotify ou Amazon Music")
+    @app_commands.command(name="didiplaylist", description="Joue une playlist YouTube, Deezer, Spotify ou Amazon Music")
     @app_commands.describe(url="Lien ou nom de la playlist")
     @app_commands.checks.cooldown(1, 30, key=lambda i: i.guild_id)
     async def playlist(self, interaction: discord.Interaction, url: str):
@@ -212,17 +231,26 @@ class Music(commands.Cog):
             await interaction.followup.send("Chargement de la playlist Deezer... ⏳")
             deezer_tracks = await get_playlist_tracks(url)
             tracks = [
-                {"title": f"{t['artist']} - {t['title']}", "query": t["query"], "is_url": False}
+                {"title": t["title"], "query": t["query"], "is_url": False}
                 for t in deezer_tracks
             ]
 
         # Spotify playlist — domaine validé
         elif is_valid_spotify_url(url) and "playlist" in url:
             await interaction.followup.send("Chargement de la playlist Spotify... ⏳")
-            spotify_tracks = await get_playlist_tracks(url)
+            await interaction.followup.send(
+                "Les playlists Spotify ne sont pas encore supportées proprement. "
+                "Utilise Deezer, YouTube ou Amazon Music pour l'instant."
+            )
+            return
+
+        # Amazon Music playlist
+        elif is_valid_amazon_url(url):
+            await interaction.followup.send("Chargement de la playlist Amazon Music... ⏳")
+            amazon_tracks = await get_amazon_playlist_tracks(url)
             tracks = [
-                {"title": f"{t['artist']} - {t['title']}", "query": t["query"], "is_url": False}
-                for t in spotify_tracks
+                {"title": t["title"], "query": t["query"], "is_url": False}
+                for t in amazon_tracks
             ]
 
         # Recherche par nom (pas d'URL)
@@ -237,7 +265,7 @@ class Music(commands.Cog):
 
         else:
             await interaction.followup.send(
-                "Lien non reconnu. Utilise un lien YouTube, Spotify ou Amazon Music."
+                "Lien non reconnu. Utilise un lien YouTube, Deezer, Spotify ou Amazon Music."
             )
             return
 
