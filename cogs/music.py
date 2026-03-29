@@ -5,7 +5,7 @@ import asyncio
 import traceback
 from collections import deque
 
-from utils.youtube import search_youtube, get_playlist, resolve_url, format_duration, FFMPEG_OPTIONS
+from utils.youtube import search_youtube, get_playlist, resolve_url, format_duration, FFMPEG_OPTIONS, get_ffmpeg_executable
 from utils.spotify import search_track, get_playlist_tracks
 from utils.validators import (
     is_valid_youtube_url, is_valid_spotify_url, is_valid_deezer_url, is_valid_amazon_url,
@@ -125,7 +125,11 @@ class Music(commands.Cog):
 
             print(f"[play_next] resolved guild={guild.id} title={info.get('title', '?')} stream={info.get('url', '')[:120]}")
             try:
-                source = discord.FFmpegPCMAudio(info["url"], **FFMPEG_OPTIONS)
+                source = discord.FFmpegPCMAudio(
+                    info["url"],
+                    executable=get_ffmpeg_executable(),
+                    **FFMPEG_OPTIONS,
+                )
             except Exception as e:
                 print(f"[play_next] ffmpeg source failed guild={guild.id} title={info.get('title', '?')} error={e!r}")
                 traceback.print_exc()

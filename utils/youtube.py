@@ -1,4 +1,6 @@
 import asyncio
+import os
+import shutil
 
 YDL_OPTIONS = {
     "format": "bestaudio/best",
@@ -12,6 +14,20 @@ FFMPEG_OPTIONS = {
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
     "options": "-vn",
 }
+
+
+def get_ffmpeg_executable() -> str:
+    """Retourne un exécutable ffmpeg fiable pour Linux/Windows/Railway."""
+    env_path = os.getenv("FFMPEG_PATH")
+    if env_path:
+        return env_path
+
+    system_ffmpeg = shutil.which("ffmpeg")
+    if system_ffmpeg:
+        return system_ffmpeg
+
+    import imageio_ffmpeg
+    return imageio_ffmpeg.get_ffmpeg_exe()
 
 
 async def search_youtube(query: str) -> dict | None:

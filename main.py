@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 import asyncio
 import sys
+from utils.youtube import get_ffmpeg_executable
 
 load_dotenv()
 
@@ -50,6 +51,11 @@ async def on_ready():
     except Exception as e:
         print(f"⚠️ yt-dlp pré-chargement échoué: {e}")
 
+
+    try:
+        print(f"✅ ffmpeg: {get_ffmpeg_executable()}")
+    except Exception as e:
+        print(f"⚠️ ffmpeg introuvable: {e}")
 
 async def main():
     async with bot:
