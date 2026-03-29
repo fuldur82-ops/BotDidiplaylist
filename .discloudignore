@@ -1,0 +1,10 @@
+.git/
+__pycache__/
+.cache/
+venv/
+.venv/
+.env
+nul
+nixpacks.toml
+Procfile
+runtime.txt
