@@ -7,7 +7,7 @@ from collections import deque
 from utils.youtube import search_youtube, get_playlist, resolve_url, format_duration, FFMPEG_OPTIONS
 from utils.spotify import search_track, get_playlist_tracks
 from utils.validators import (
-    is_valid_youtube_url, is_valid_spotify_url,
+    is_valid_youtube_url, is_valid_spotify_url, is_valid_deezer_url,
     sanitize_search_query, MAX_QUEUE_SIZE, MAX_PLAYLIST_SIZE
 )
 
@@ -207,7 +207,16 @@ class Music(commands.Cog):
             await interaction.followup.send("Chargement de la playlist YouTube... ⏳")
             tracks = await get_playlist(url)
 
-        # Spotify/Deezer playlist — domaine validé
+        # Deezer playlist
+        elif is_valid_deezer_url(url) and "playlist" in url:
+            await interaction.followup.send("Chargement de la playlist Deezer... ⏳")
+            deezer_tracks = await get_playlist_tracks(url)
+            tracks = [
+                {"title": f"{t['artist']} - {t['title']}", "query": t["query"], "is_url": False}
+                for t in deezer_tracks
+            ]
+
+        # Spotify playlist — domaine validé
         elif is_valid_spotify_url(url) and "playlist" in url:
             await interaction.followup.send("Chargement de la playlist Spotify... ⏳")
             spotify_tracks = await get_playlist_tracks(url)
