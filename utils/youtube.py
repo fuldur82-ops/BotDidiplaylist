@@ -1,17 +1,11 @@
-import yt_dlp
 import asyncio
 
 YDL_OPTIONS = {
     "format": "bestaudio/best",
-    "noplaylist": False,
     "quiet": True,
     "no_warnings": True,
     "default_search": "ytsearch",
-    "source_address": "0.0.0.0",
-    "postprocessors": [{
-        "key": "FFmpegExtractAudio",
-        "preferredcodec": "opus",
-    }],
+    "cachedir": False,
 }
 
 FFMPEG_OPTIONS = {
@@ -22,6 +16,7 @@ FFMPEG_OPTIONS = {
 
 async def search_youtube(query: str) -> dict | None:
     """Recherche un titre sur YouTube et retourne l'URL audio."""
+    import yt_dlp
     opts = {**YDL_OPTIONS, "noplaylist": True}
     loop = asyncio.get_event_loop()
 
@@ -45,6 +40,7 @@ async def search_youtube(query: str) -> dict | None:
 
 async def get_playlist(url: str) -> list[dict]:
     """Extrait tous les titres d'une playlist YouTube."""
+    import yt_dlp
     opts = {**YDL_OPTIONS, "noplaylist": False, "extract_flat": True}
     loop = asyncio.get_event_loop()
 
@@ -68,6 +64,7 @@ async def get_playlist(url: str) -> list[dict]:
 
 async def resolve_url(url: str) -> dict | None:
     """Résout une URL YouTube directe en flux audio."""
+    import yt_dlp
     opts = {**YDL_OPTIONS, "noplaylist": True}
     loop = asyncio.get_event_loop()
 

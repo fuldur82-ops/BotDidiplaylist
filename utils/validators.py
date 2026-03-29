@@ -5,8 +5,8 @@ ALLOWED_SPOTIFY_HOSTS = {"open.spotify.com"}
 ALLOWED_AMAZON_HOSTS = {"music.amazon.com", "music.amazon.fr", "music.amazon.co.uk",
                         "music.amazon.de", "music.amazon.es", "music.amazon.it"}
 
-MAX_QUEUE_SIZE = 200
-MAX_PLAYLIST_SIZE = 200
+MAX_QUEUE_SIZE = 50
+MAX_PLAYLIST_SIZE = 50
 MAX_SEARCH_LENGTH = 200
 
 

@@ -6,7 +6,6 @@ from collections import deque
 
 from utils.youtube import search_youtube, get_playlist, resolve_url, format_duration, FFMPEG_OPTIONS
 from utils.spotify import search_track, get_playlist_tracks
-from utils.amazon import get_amazon_playlist_tracks, is_amazon_url
 from utils.validators import (
     is_valid_youtube_url, is_valid_spotify_url,
     sanitize_search_query, MAX_QUEUE_SIZE, MAX_PLAYLIST_SIZE
@@ -215,20 +214,6 @@ class Music(commands.Cog):
             tracks = [
                 {"title": f"{t['artist']} - {t['title']}", "query": t["query"], "is_url": False}
                 for t in spotify_tracks
-            ]
-
-        # Amazon Music — domaine validé
-        elif is_amazon_url(url):
-            await interaction.followup.send("Tentative de chargement Amazon Music... ⚠️ (résultats non garantis)")
-            amazon_tracks = await get_amazon_playlist_tracks(url)
-            if not amazon_tracks:
-                await interaction.channel.send(
-                    "Amazon Music a bloqué la requête. Essaie avec un lien YouTube ou Spotify."
-                )
-                return
-            tracks = [
-                {"title": f"{t['artist']} - {t['title']}", "query": t["query"], "is_url": False}
-                for t in amazon_tracks
             ]
 
         # Recherche par nom (pas d'URL)
