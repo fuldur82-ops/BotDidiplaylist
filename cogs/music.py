@@ -166,9 +166,8 @@ class Music(commands.Cog):
 
             print(f"[play_next] resolved guild={guild.id} title={info.get('title', '?')} stream={info.get('url', '')[:120]}")
             try:
-                source = await discord.FFmpegOpusAudio.from_probe(
+                source = discord.FFmpegPCMAudio(
                     info["url"],
-                    method="fallback",
                     executable=get_ffmpeg_executable(),
                     **FFMPEG_OPTIONS,
                 )

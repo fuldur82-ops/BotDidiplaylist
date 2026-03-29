@@ -26,8 +26,7 @@ def get_ffmpeg_executable() -> str:
     if system_ffmpeg:
         return system_ffmpeg
 
-    import imageio_ffmpeg
-    return imageio_ffmpeg.get_ffmpeg_exe()
+    return "ffmpeg"  # fallback PATH par défaut
 
 
 async def search_youtube(query: str) -> dict | None:
