@@ -36,7 +36,7 @@ async def on_ready():
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.listening,
-            name="/play pour de la musique 🎵"
+            name="/didiplay pour de la musique 🎵"
         )
     )
     try:

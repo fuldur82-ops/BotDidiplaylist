@@ -133,7 +133,7 @@ class Music(commands.Cog):
 
     # ── /play ──────────────────────────────────────────────────────────────────
 
-    @app_commands.command(name="play", description="Joue un titre (nom, artiste, ou lien YouTube)")
+    @app_commands.command(name="didiplay", description="Joue un titre (nom, artiste, ou lien YouTube)")
     @app_commands.describe(recherche="Nom du titre, artiste, ou lien YouTube")
     @app_commands.checks.cooldown(3, 10, key=lambda i: i.guild_id)
     async def play(self, interaction: discord.Interaction, recherche: str):
@@ -149,7 +149,7 @@ class Music(commands.Cog):
 
         if len(queue) >= MAX_QUEUE_SIZE:
             await interaction.followup.send(
-                f"La file est pleine ({MAX_QUEUE_SIZE} titres max). Utilise `/skip` pour avancer."
+                f"La file est pleine ({MAX_QUEUE_SIZE} titres max). Utilise `/didiskip` pour avancer."
             )
             return
 
@@ -188,7 +188,7 @@ class Music(commands.Cog):
 
     # ── /playlist ──────────────────────────────────────────────────────────────
 
-    @app_commands.command(name="playlist", description="Joue une playlist YouTube, Spotify ou Amazon Music")
+    @app_commands.command(name="didiplaylist", description="Joue une playlist YouTube, Spotify ou Amazon Music")
     @app_commands.describe(url="Lien ou nom de la playlist")
     @app_commands.checks.cooldown(1, 30, key=lambda i: i.guild_id)
     async def playlist(self, interaction: discord.Interaction, url: str):
@@ -277,7 +277,7 @@ class Music(commands.Cog):
 
     # ── /skip ──────────────────────────────────────────────────────────────────
 
-    @app_commands.command(name="skip", description="Passe au titre suivant")
+    @app_commands.command(name="didiskip", description="Passe au titre suivant")
     async def skip(self, interaction: discord.Interaction):
         vc = interaction.guild.voice_client
         if not vc or not vc.is_playing():
@@ -288,7 +288,7 @@ class Music(commands.Cog):
 
     # ── /pause ─────────────────────────────────────────────────────────────────
 
-    @app_commands.command(name="pause", description="Met la musique en pause")
+    @app_commands.command(name="didipause", description="Met la musique en pause")
     async def pause(self, interaction: discord.Interaction):
         vc = interaction.guild.voice_client
         if vc and vc.is_playing():
@@ -299,7 +299,7 @@ class Music(commands.Cog):
 
     # ── /resume ────────────────────────────────────────────────────────────────
 
-    @app_commands.command(name="resume", description="Reprend la lecture")
+    @app_commands.command(name="didiresume", description="Reprend la lecture")
     async def resume(self, interaction: discord.Interaction):
         vc = interaction.guild.voice_client
         if vc and vc.is_paused():
@@ -310,7 +310,7 @@ class Music(commands.Cog):
 
     # ── /queue ─────────────────────────────────────────────────────────────────
 
-    @app_commands.command(name="queue", description="Affiche la file d'attente")
+    @app_commands.command(name="didiqueue", description="Affiche la file d'attente")
     async def queue_cmd(self, interaction: discord.Interaction):
         queue = self.get_queue(interaction.guild.id)
 
@@ -339,7 +339,7 @@ class Music(commands.Cog):
 
     # ── /leave ─────────────────────────────────────────────────────────────────
 
-    @app_commands.command(name="leave", description="Le bot quitte le salon vocal")
+    @app_commands.command(name="didileave", description="Le bot quitte le salon vocal")
     async def leave(self, interaction: discord.Interaction):
         vc = interaction.guild.voice_client
         if vc:
