@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import asyncio
+import traceback
 from collections import deque
 
 from utils.youtube import search_youtube, get_playlist, resolve_url, format_duration, FFMPEG_OPTIONS
@@ -74,6 +75,7 @@ class Music(commands.Cog):
         track = queue.next()
 
         if not track or not guild.voice_client:
+            print(f"[play_next] stop guild={guild.id} has_track={bool(track)} has_vc={bool(guild.voice_client)} queue_len={len(queue)}")
             queue.is_playing = False
             if guild.voice_client:
                 asyncio.run_coroutine_threadsafe(
@@ -84,15 +86,20 @@ class Music(commands.Cog):
         async def _play():
             vc = guild.voice_client
             if not vc:
+                print(f"[play_next] no voice client guild={guild.id}")
                 return
 
             try:
                 if track.get("is_url") and is_valid_youtube_url(track.get("url", "")):
+                    print(f"[play_next] resolve url guild={guild.id} title={track.get('title', '?')}")
                     info = await resolve_url(track["url"])
                 else:
                     query = track.get("query") or track.get("title", "")
+                    print(f"[play_next] search guild={guild.id} query={query!r}")
                     info = await search_youtube(query)
-            except Exception:
+            except Exception as e:
+                print(f"[play_next] source resolution failed guild={guild.id} title={track.get('title', '?')} error={e!r}")
+                traceback.print_exc()
                 await text_channel.send(
                     f"Erreur lors du chargement de **{track.get('title', '?')}**, je passe au suivant."
                 )
@@ -100,13 +107,24 @@ class Music(commands.Cog):
                 return
 
             if not info:
+                print(f"[play_next] no info guild={guild.id} title={track.get('title', '?')}")
                 await text_channel.send(
                     f"Impossible de trouver **{track.get('title', '?')}**, je passe au suivant."
                 )
                 self.play_next(guild, text_channel)
                 return
 
-            source = discord.FFmpegPCMAudio(info["url"], **FFMPEG_OPTIONS)
+            print(f"[play_next] resolved guild={guild.id} title={info.get('title', '?')} stream={info.get('url', '')[:120]}")
+            try:
+                source = discord.FFmpegPCMAudio(info["url"], **FFMPEG_OPTIONS)
+            except Exception as e:
+                print(f"[play_next] ffmpeg source failed guild={guild.id} title={info.get('title', '?')} error={e!r}")
+                traceback.print_exc()
+                await text_channel.send(
+                    f"Erreur FFmpeg sur **{track.get('title', '?')}**, je passe au suivant."
+                )
+                self.play_next(guild, text_channel)
+                return
             queue.is_playing = True
 
             embed = discord.Embed(
@@ -122,13 +140,24 @@ class Music(commands.Cog):
                 embed.set_footer(text=f"{len(queue)} titre(s) dans la file")
 
             await text_channel.send(embed=embed)
-            vc.play(source, after=lambda e: self._after_playback(guild, text_channel, e))
+            try:
+                vc.play(source, after=lambda e: self._after_playback(guild, text_channel, e))
+            except Exception as e:
+                queue.is_playing = False
+                print(f"[play_next] vc.play failed guild={guild.id} title={info.get('title', '?')} error={e!r}")
+                traceback.print_exc()
+                await text_channel.send(
+                    f"Erreur de lecture vocale sur **{track.get('title', '?')}**, je passe au suivant."
+                )
+                self.play_next(guild, text_channel)
+                return
 
         asyncio.run_coroutine_threadsafe(_play(), self.bot.loop)
 
     def _after_playback(self, guild: discord.Guild, text_channel: discord.TextChannel, error: Exception | None):
         queue = self.get_queue(guild.id)
         queue.is_playing = False
+        print(f"[after_playback] guild={guild.id} error={error!r} queue_len={len(queue)}")
 
         if error:
             print(f"Erreur lecture Discord voice pour {guild.name}: {error}")
