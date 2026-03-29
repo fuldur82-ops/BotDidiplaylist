@@ -80,6 +80,16 @@ Configuration utilisee :
 3. N'inclus pas `.git`, `__pycache__`, `.venv`, `nixpacks.toml`, `Procfile`, `runtime.txt` ni `nul`
 4. Uploade le zip sur Discloud
 
+### Mise a jour rapide
+
+Apres tes modifs Git, regenere simplement le zip avec :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-discloud-package.ps1
+```
+
+Le script reconstruit `BotDidi-discloud.zip` avec la bonne arborescence et le `.env`.
+
 ## Notes techniques
 
 - FFmpeg est requis pour la lecture audio
