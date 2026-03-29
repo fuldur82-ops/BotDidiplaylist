@@ -44,6 +44,11 @@ async def on_ready():
         print(f"✅ {len(synced)} commandes slash synchronisées")
     except Exception as e:
         print(f"❌ Erreur sync commandes: {e}")
+    try:
+        import yt_dlp  # pré-chargement pour éviter le délai au premier /didiplay
+        print("✅ yt-dlp pré-chargé")
+    except Exception as e:
+        print(f"⚠️ yt-dlp pré-chargement échoué: {e}")
 
 
 async def main():
