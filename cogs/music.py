@@ -60,9 +60,18 @@ class Music(commands.Cog):
         guild = interaction.guild
 
         if guild.voice_client:
-            if guild.voice_client.channel != channel:
-                await guild.voice_client.move_to(channel)
-            return guild.voice_client
+            vc = guild.voice_client
+            if not vc.is_connected():
+                print(f"[ensure_voice] stale voice client guild={guild.id}, reconnecting")
+                self.get_queue(guild.id).clear()
+                try:
+                    await vc.disconnect(force=True)
+                except Exception:
+                    pass
+            else:
+                if vc.channel != channel:
+                    await vc.move_to(channel)
+                return vc
 
         vc = await channel.connect()
         await interaction.channel.send(
@@ -175,6 +184,7 @@ class Music(commands.Cog):
             and len(queue) == 0
         ):
             await text_channel.send("File vide, je me casse ! À plus 👋")
+            queue.clear()
             await guild.voice_client.disconnect()
 
     # ── /play ──────────────────────────────────────────────────────────────────
