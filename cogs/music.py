@@ -6,7 +6,6 @@ from collections import deque
 
 from utils.youtube import search_youtube, get_playlist, resolve_url, format_duration, FFMPEG_OPTIONS
 from utils.spotify import search_track, get_playlist_tracks
-from utils.amazon import get_amazon_playlist_tracks
 from utils.validators import (
     is_valid_youtube_url, is_valid_spotify_url, is_valid_deezer_url, is_valid_amazon_url,
     sanitize_search_query, MAX_QUEUE_SIZE, MAX_PLAYLIST_SIZE
@@ -247,6 +246,7 @@ class Music(commands.Cog):
         # Amazon Music playlist
         elif is_valid_amazon_url(url):
             await interaction.followup.send("Chargement de la playlist Amazon Music... ⏳")
+            from utils.amazon import get_amazon_playlist_tracks
             amazon_tracks = await get_amazon_playlist_tracks(url)
             tracks = [
                 {"title": t["title"], "query": t["query"], "is_url": False}
