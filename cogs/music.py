@@ -55,6 +55,10 @@ class Music(commands.Cog):
         loop = asyncio.get_running_loop()
         deadline = loop.time() + timeout
         while loop.time() < deadline:
+            print(
+                f"[voice_wait] guild={getattr(vc.guild, 'id', '?')} connected={vc.is_connected()} "
+                f"channel={getattr(getattr(vc, 'channel', None), 'id', None)}"
+            )
             if vc.is_connected():
                 return True
             await asyncio.sleep(0.25)
@@ -70,6 +74,10 @@ class Music(commands.Cog):
 
         if guild.voice_client:
             vc = guild.voice_client
+            print(
+                f"[ensure_voice] existing guild={guild.id} connected={vc.is_connected()} "
+                f"channel={getattr(getattr(vc, 'channel', None), 'id', None)} target={channel.id}"
+            )
             if not vc.is_connected():
                 print(f"[ensure_voice] stale voice client guild={guild.id}, reconnecting")
                 self.get_queue(guild.id).clear()
@@ -79,13 +87,19 @@ class Music(commands.Cog):
                     pass
             else:
                 if vc.channel != channel:
+                    print(f"[ensure_voice] move guild={guild.id} from={vc.channel.id} to={channel.id}")
                     await vc.move_to(channel)
                     if not await self.wait_for_voice_ready(vc):
                         await interaction.followup.send("Connexion vocale instable, réessaie dans quelques secondes.")
                         return None
                 return vc
 
+        print(f"[ensure_voice] connect start guild={guild.id} channel={channel.id}")
         vc = await channel.connect()
+        print(
+            f"[ensure_voice] connect returned guild={guild.id} connected={vc.is_connected()} "
+            f"channel={getattr(getattr(vc, 'channel', None), 'id', None)}"
+        )
         if not await self.wait_for_voice_ready(vc):
             await interaction.followup.send("Connexion au vocal échouée. Réessaie dans quelques secondes.")
             try:

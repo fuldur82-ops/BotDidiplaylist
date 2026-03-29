@@ -57,6 +57,19 @@ async def on_ready():
     except Exception as e:
         print(f"⚠️ ffmpeg introuvable: {e}")
 
+@bot.event
+async def on_voice_state_update(member, before, after):
+    if member.id != bot.user.id:
+        return
+    print(
+        "[voice_state] "
+        f"guild={getattr(member.guild, 'id', None)} "
+        f"before_channel={getattr(before.channel, 'id', None)} "
+        f"after_channel={getattr(after.channel, 'id', None)} "
+        f"self_mute={after.self_mute} self_deaf={after.self_deaf} "
+        f"mute={after.mute} deaf={after.deaf}"
+    )
+
 async def main():
     async with bot:
         await bot.load_extension("cogs.music")
