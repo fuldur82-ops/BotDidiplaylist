@@ -51,6 +51,15 @@ class Music(commands.Cog):
             self.queues[guild_id] = MusicQueue()
         return self.queues[guild_id]
 
+    async def wait_for_voice_ready(self, vc: discord.VoiceClient, timeout: float = 10.0) -> bool:
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+        while loop.time() < deadline:
+            if vc.is_connected():
+                return True
+            await asyncio.sleep(0.25)
+        return vc.is_connected()
+
     async def ensure_voice(self, interaction: discord.Interaction) -> discord.VoiceClient | None:
         if not interaction.user.voice or not interaction.user.voice.channel:
             await interaction.followup.send("Tu dois être dans un salon vocal d'abord !")
@@ -71,9 +80,19 @@ class Music(commands.Cog):
             else:
                 if vc.channel != channel:
                     await vc.move_to(channel)
+                    if not await self.wait_for_voice_ready(vc):
+                        await interaction.followup.send("Connexion vocale instable, réessaie dans quelques secondes.")
+                        return None
                 return vc
 
         vc = await channel.connect()
+        if not await self.wait_for_voice_ready(vc):
+            await interaction.followup.send("Connexion au vocal échouée. Réessaie dans quelques secondes.")
+            try:
+                await vc.disconnect(force=True)
+            except Exception:
+                pass
+            return None
         await interaction.channel.send(
             f"Yo, je suis là ! Prêt à mettre l'ambiance dans **{channel.name}** 🎧"
         )
@@ -96,6 +115,14 @@ class Music(commands.Cog):
             vc = guild.voice_client
             if not vc:
                 print(f"[play_next] no voice client guild={guild.id}")
+                return
+            if not await self.wait_for_voice_ready(vc):
+                print(f"[play_next] voice not ready guild={guild.id}")
+                queue.is_playing = False
+                await text_channel.send("Connexion vocale perdue, tentative annulée.")
+                asyncio.run_coroutine_threadsafe(
+                    self._leave_empty(guild, text_channel), self.bot.loop
+                )
                 return
 
             try:
