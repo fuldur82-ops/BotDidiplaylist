@@ -157,9 +157,9 @@ class Music(commands.Cog):
         if is_valid_youtube_url(recherche):
             track = {"title": recherche, "url": recherche, "is_url": True}
 
-        # Recherche texte — via Spotify pour les métadonnées, puis YouTube pour l'audio
+        # Recherche texte — via Deezer pour les métadonnées, puis YouTube pour l'audio
         else:
-            spotify_result = search_track(recherche)
+            spotify_result = await search_track(recherche)
             if spotify_result:
                 track = {
                     "title": f"{spotify_result['artist']} - {spotify_result['title']}",
@@ -208,10 +208,10 @@ class Music(commands.Cog):
             await interaction.followup.send("Chargement de la playlist YouTube... ⏳")
             tracks = await get_playlist(url)
 
-        # Spotify playlist — domaine validé
+        # Spotify/Deezer playlist — domaine validé
         elif is_valid_spotify_url(url) and "playlist" in url:
             await interaction.followup.send("Chargement de la playlist Spotify... ⏳")
-            spotify_tracks = get_playlist_tracks(url)
+            spotify_tracks = await get_playlist_tracks(url)
             tracks = [
                 {"title": f"{t['artist']} - {t['title']}", "query": t["query"], "is_url": False}
                 for t in spotify_tracks

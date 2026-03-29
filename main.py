@@ -9,8 +9,6 @@ load_dotenv()
 
 REQUIRED_ENV_VARS = {
     "DISCORD_TOKEN": "Token du bot Discord (discord.com/developers)",
-    "SPOTIFY_CLIENT_ID": "Client ID Spotify (developer.spotify.com)",
-    "SPOTIFY_CLIENT_SECRET": "Client Secret Spotify (developer.spotify.com)",
 }
 
 def check_credentials():
