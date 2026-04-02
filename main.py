@@ -9,6 +9,9 @@ from utils.youtube import get_ffmpeg_executable
 
 load_dotenv()
 
+sys.__stdout__.reconfigure(encoding="utf-8", errors="replace")
+sys.__stderr__.reconfigure(encoding="utf-8", errors="replace")
+
 _log_file = open("bot.log", "a", encoding="utf-8", buffering=1)
 
 class _Tee:
