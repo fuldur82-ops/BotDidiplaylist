@@ -82,7 +82,7 @@ class Music(commands.Cog):
 
         print(f"[ensure_voice] connect guild={guild.id} channel={channel.id}")
         try:
-            vc = await channel.connect(timeout=15, reconnect=False)
+            vc = await channel.connect(timeout=60, reconnect=True)
         except asyncio.TimeoutError:
             print(f"[ensure_voice] timeout guild={guild.id}")
             await interaction.followup.send("Connexion au vocal échouée (timeout). Réessaie.")
