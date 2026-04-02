@@ -13,6 +13,8 @@ jobs:
       APP_ID: ${{ secrets.DISCLOUD_APP_ID }}
       DISCLOUD_API_TOKEN: ${{ secrets.DISCLOUD_API_TOKEN }}
       DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+      SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+      SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,9 +30,9 @@ jobs:
           rm -rf discloud-package BotDidi-discloud.zip
           mkdir -p discloud-package/cogs discloud-package/utils
           cp cogs/music.py cogs/__init__.py discloud-package/cogs/
-          cp utils/spotify.py utils/validators.py utils/youtube.py utils/__init__.py discloud-package/utils/
+          cp utils/spotify.py utils/validators.py utils/youtube.py utils/amazon.py utils/__init__.py discloud-package/utils/
           cp main.py requirements.txt discloud.config discloud-package/
-          printf 'DISCORD_TOKEN=%s\n' "$DISCORD_TOKEN" > discloud-package/.env
+          printf 'DISCORD_TOKEN=%s\nSPOTIFY_CLIENT_ID=%s\nSPOTIFY_CLIENT_SECRET=%s\n' "$DISCORD_TOKEN" "$SPOTIFY_CLIENT_ID" "$SPOTIFY_CLIENT_SECRET" > discloud-package/.env
           cd discloud-package
           zip -r ../BotDidi-discloud.zip .
 
