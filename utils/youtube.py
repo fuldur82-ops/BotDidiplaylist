@@ -56,23 +56,37 @@ async def search_youtube(query: str) -> dict | None:
 async def get_playlist(url: str) -> list[dict]:
     """Extrait tous les titres d'une playlist YouTube."""
     import yt_dlp
+    from urllib.parse import urlparse, parse_qs
+
+    # Si l'URL contient list= (ex: watch?v=X&list=Y), force l'URL playlist pure
+    parsed = urlparse(url)
+    qs = parse_qs(parsed.query)
+    if "list" in qs:
+        url = f"https://www.youtube.com/playlist?list={qs['list'][0]}"
+
     opts = {**YDL_OPTIONS, "noplaylist": False, "extract_flat": True}
     loop = asyncio.get_event_loop()
 
     def _get():
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            entries = info.get("entries", [])
-            return [
-                {
-                    "title": e.get("title", "Titre inconnu"),
-                    "url": e.get("url") or e.get("webpage_url", ""),
-                    "duration": e.get("duration", 0),
-                    "thumbnail": e.get("thumbnail", ""),
-                    "is_url": True,
-                }
-                for e in entries if e
-            ]
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                if not info:
+                    return []
+                entries = info.get("entries", [])
+                return [
+                    {
+                        "title": e.get("title", "Titre inconnu"),
+                        "url": e.get("url") or e.get("webpage_url", ""),
+                        "duration": e.get("duration", 0),
+                        "thumbnail": e.get("thumbnail", ""),
+                        "is_url": True,
+                    }
+                    for e in entries if e
+                ]
+        except Exception as e:
+            print(f"[get_playlist] error: {e!r}")
+            return []
 
     return await loop.run_in_executor(None, _get)
 

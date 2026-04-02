@@ -6,7 +6,7 @@ import traceback
 from collections import deque
 
 from utils.youtube import search_youtube, get_playlist, resolve_url, format_duration, FFMPEG_OPTIONS, get_ffmpeg_executable
-from utils.spotify import search_track, get_playlist_tracks
+from utils.spotify import search_track, get_playlist_tracks, get_deezer_playlist_tracks
 from utils.validators import (
     is_valid_youtube_url, is_valid_spotify_url, is_valid_deezer_url, is_valid_amazon_url,
     sanitize_search_query, MAX_QUEUE_SIZE, MAX_PLAYLIST_SIZE
@@ -51,19 +51,6 @@ class Music(commands.Cog):
             self.queues[guild_id] = MusicQueue()
         return self.queues[guild_id]
 
-    async def wait_for_voice_ready(self, vc: discord.VoiceClient, timeout: float = 10.0) -> bool:
-        loop = asyncio.get_running_loop()
-        deadline = loop.time() + timeout
-        while loop.time() < deadline:
-            print(
-                f"[voice_wait] guild={getattr(vc.guild, 'id', '?')} connected={vc.is_connected()} "
-                f"channel={getattr(getattr(vc, 'channel', None), 'id', None)}"
-            )
-            if vc.is_connected():
-                return True
-            await asyncio.sleep(0.25)
-        return vc.is_connected()
-
     async def ensure_voice(self, interaction: discord.Interaction) -> discord.VoiceClient | None:
         if not interaction.user.voice or not interaction.user.voice.channel:
             await interaction.followup.send("Tu dois être dans un salon vocal d'abord !")
@@ -72,44 +59,41 @@ class Music(commands.Cog):
         channel = interaction.user.voice.channel
         guild = interaction.guild
 
+        # Nettoie tout voice client existant (stale ou dans un autre channel)
         if guild.voice_client:
             vc = guild.voice_client
-            print(
-                f"[ensure_voice] existing guild={guild.id} connected={vc.is_connected()} "
-                f"channel={getattr(getattr(vc, 'channel', None), 'id', None)} target={channel.id}"
-            )
-            if not vc.is_connected():
-                print(f"[ensure_voice] stale voice client guild={guild.id}, reconnecting")
-                self.get_queue(guild.id).clear()
-                try:
-                    await vc.disconnect(force=True)
-                except Exception:
-                    pass
-            else:
-                if vc.channel != channel:
-                    print(f"[ensure_voice] move guild={guild.id} from={vc.channel.id} to={channel.id}")
-                    await vc.move_to(channel)
-                    if not await self.wait_for_voice_ready(vc):
-                        await interaction.followup.send("Connexion vocale instable, réessaie dans quelques secondes.")
-                        return None
+            if vc.is_connected() and vc.channel == channel:
+                print(f"[ensure_voice] reuse guild={guild.id} channel={channel.id}")
                 return vc
-
-        print(f"[ensure_voice] connect start guild={guild.id} channel={channel.id}")
-        vc = await channel.connect()
-        print(
-            f"[ensure_voice] connect returned guild={guild.id} connected={vc.is_connected()} "
-            f"channel={getattr(getattr(vc, 'channel', None), 'id', None)}"
-        )
-        if not await self.wait_for_voice_ready(vc):
-            await interaction.followup.send("Connexion au vocal échouée. Réessaie dans quelques secondes.")
+            print(f"[ensure_voice] cleanup stale guild={guild.id}")
             try:
                 await vc.disconnect(force=True)
             except Exception:
                 pass
+            await asyncio.sleep(0.5)
+
+        # Force Discord à réinitialiser l'état vocal (fix 4006 stale session)
+        print(f"[ensure_voice] clear voice state guild={guild.id}")
+        try:
+            await guild.change_voice_state(channel=None)
+            await asyncio.sleep(1.5)
+        except Exception as e:
+            print(f"[ensure_voice] clear failed (non-fatal) guild={guild.id} error={e!r}")
+
+        print(f"[ensure_voice] connect guild={guild.id} channel={channel.id}")
+        try:
+            vc = await channel.connect(timeout=15, reconnect=False)
+        except asyncio.TimeoutError:
+            print(f"[ensure_voice] timeout guild={guild.id}")
+            await interaction.followup.send("Connexion au vocal échouée (timeout). Réessaie.")
             return None
-        await interaction.channel.send(
-            f"Yo, je suis là ! Prêt à mettre l'ambiance dans **{channel.name}** 🎧"
-        )
+        except Exception as e:
+            print(f"[ensure_voice] error guild={guild.id} error={e!r}")
+            await interaction.followup.send(f"Impossible de rejoindre le salon vocal : {e}")
+            return None
+
+        print(f"[ensure_voice] connected={vc.is_connected()} guild={guild.id}")
+        await interaction.channel.send(f"Yo, je suis là 🎧 **{channel.name}**")
         return vc
 
     def play_next(self, guild: discord.Guild, text_channel: discord.TextChannel):
@@ -130,13 +114,10 @@ class Music(commands.Cog):
             if not vc:
                 print(f"[play_next] no voice client guild={guild.id}")
                 return
-            if not await self.wait_for_voice_ready(vc):
+            if not vc.is_connected():
                 print(f"[play_next] voice not ready guild={guild.id}")
                 queue.is_playing = False
                 await text_channel.send("Connexion vocale perdue, tentative annulée.")
-                asyncio.run_coroutine_threadsafe(
-                    self._leave_empty(guild, text_channel), self.bot.loop
-                )
                 return
 
             try:
@@ -312,20 +293,20 @@ class Music(commands.Cog):
         # Deezer playlist
         elif is_valid_deezer_url(url) and "playlist" in url:
             await interaction.followup.send("Chargement de la playlist Deezer... ⏳")
-            deezer_tracks = await get_playlist_tracks(url)
+            deezer_tracks = await get_deezer_playlist_tracks(url)
             tracks = [
                 {"title": t["title"], "query": t["query"], "is_url": False}
                 for t in deezer_tracks
             ]
 
-        # Spotify playlist — domaine validé
+        # Spotify playlist
         elif is_valid_spotify_url(url) and "playlist" in url:
             await interaction.followup.send("Chargement de la playlist Spotify... ⏳")
-            await interaction.followup.send(
-                "Les playlists Spotify ne sont pas encore supportées proprement. "
-                "Utilise Deezer, YouTube ou Amazon Music pour l'instant."
-            )
-            return
+            spotify_tracks = await get_playlist_tracks(url)
+            tracks = [
+                {"title": t["title"], "query": t["query"], "is_url": False}
+                for t in spotify_tracks
+            ]
 
         # Amazon Music playlist
         elif is_valid_amazon_url(url):

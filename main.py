@@ -4,9 +4,33 @@ from dotenv import load_dotenv
 import os
 import asyncio
 import sys
+import logging
 from utils.youtube import get_ffmpeg_executable
 
 load_dotenv()
+
+_log_file = open("bot.log", "a", encoding="utf-8", buffering=1)
+
+class _Tee:
+    def __init__(self, *streams):
+        self.streams = streams
+    def write(self, data):
+        for s in self.streams:
+            s.write(data)
+    def flush(self):
+        for s in self.streams:
+            s.flush()
+
+sys.stdout = _Tee(sys.__stdout__, _log_file)
+sys.stderr = _Tee(sys.__stderr__, _log_file)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(message)s",
+    datefmt="%H:%M:%S",
+    handlers=[logging.StreamHandler(sys.__stdout__)],
+)
+
 
 REQUIRED_ENV_VARS = {
     "DISCORD_TOKEN": "Token du bot Discord (discord.com/developers)",
